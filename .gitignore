@@ -1,0 +1,9 @@
+#VisualStudio stuff
+*.sln
+*.user
+*.vcxproj
+/.vs
+
+#Temp files
+/Binaries
+/Intermediate
