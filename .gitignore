@@ -2,6 +2,7 @@
 *.sln
 *.user
 *.vcxproj
+*.filters
 /.vs
 
 #Temp files
