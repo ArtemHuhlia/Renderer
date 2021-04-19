@@ -1,4 +1,3 @@
-#include "PCH.h"
 #include "EventManager.h"
 
 #include "SDL.h"

@@ -1,5 +1,9 @@
 #pragma once
 
+#include <functional>
+#include <unordered_map>
+#include <unordered_set>
+
 class EventHandler
 {
 	float DeltaTime = 0.f;

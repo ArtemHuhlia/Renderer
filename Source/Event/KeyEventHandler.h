@@ -10,7 +10,7 @@ class KeyEventHandler : public EventHandler
 	using AnyKeyDownEventFunction = std::function<void(SDL_Keycode)>;
 	using AnyKeyUpEventFunction = std::function<void(SDL_Keycode)>;
 
-	std::unordered_map<SDL_Keycode, KeyDownEventFunction> KeyDownEventBindings;
+	std::unordered_map<SDL_Keycode, KeyDownEventFunction>	KeyDownEventBindings;
 	std::unordered_map<SDL_Keycode, KeyUpEventFunction>		KeyUpEventBindings;
 	AnyKeyDownEventFunction									AnyKeyDownEventBinding;
 	AnyKeyUpEventFunction									AnyKeyUpEventBinding;

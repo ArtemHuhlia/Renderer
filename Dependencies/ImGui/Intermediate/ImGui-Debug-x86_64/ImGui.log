@@ -1,0 +1,5 @@
+﻿  imgui.cpp
+  imgui_draw.cpp
+  imgui_widgets.cpp
+  Generating Code...
+  ImGui.vcxproj -> E:\pet\Diploma\Renderer\Dependencies\ImGui\Binaries\ImGui-Debug-x86_64\ImGui.lib

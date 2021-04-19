@@ -9,8 +9,7 @@ workspace "RenderingEngine"
 
 outputdir = "%{prj.name}-%{cfg.buildcfg}-%{cfg.architecture}"
 
-include "Dependencies/glad"
-include "Dependencies/ImGui"
+--include "Dependencies/ImGui"
 
 project "RenderingEngine"
 
@@ -21,10 +20,10 @@ project "RenderingEngine"
     targetdir ("Binaries/" .. outputdir)
     objdir ("Intermediate/" .. outputdir)
 
-    systemversion "8.1"
+    systemversion "latest"
     
-    pchheader "PCH.h"
-    pchsource "Source/PCH.cpp"
+    --pchheader "PCH.h"
+    --pchsource "Source/PCH.cpp"
 
     files 
     {
@@ -33,7 +32,6 @@ project "RenderingEngine"
     }
 
     IncludeDirs = {}
-    IncludeDirs["glad"] = "Dependencies/glad/include/"
     IncludeDirs["ImGui"] = "Dependencies/ImGui/src"
 
     includedirs
@@ -41,8 +39,7 @@ project "RenderingEngine"
         "Source",
         "Dependencies/SDL2/include",
         "Dependencies/Math",
-        "%{IncludeDirs.glad}",
-        "%{IncludeDirs.ImGui}",
+        --"%{IncludeDirs.ImGui}",
         "Dependencies/stb",
         "Dependencies/tinyobjloader"
     }
@@ -57,9 +54,11 @@ project "RenderingEngine"
         "SDL2test",
         "SDL2main",
         "SDL2",
-        "glad",
-        "ImGui",
-        "tinyobjloader"
+        "user32",
+        "d3d11.lib",
+        "dxgi.lib",
+        "d3dcompiler.lib",
+        --"ImGui",
     }
 
     filter {"configurations:Debug"}
