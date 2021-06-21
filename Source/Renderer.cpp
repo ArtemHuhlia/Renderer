@@ -8,7 +8,6 @@
 #define SCREEN_NEAR  0.1f
 
 
-
 void DXRenderer::InitRendererState(HWND & TargetWindow)
 {
 	DXGI_SWAP_CHAIN_DESC SwapChainDesc;
@@ -70,14 +69,12 @@ void DXRenderer::InitRendererState(HWND & TargetWindow)
 		__uuidof(ID3D11Texture2D),
 		(LPVOID*)&BackBufferTexture
 	);
-
 	CHECK(Result == S_OK);
 
 	Result = Spec.D3DDevice->CreateRenderTargetView(BackBufferTexture, nullptr, &Spec.D3DRenderTargetView);
-
 	CHECK(Result == S_OK);
 
-	BackBufferTexture->Release();
+	//BackBufferTexture->Release();
 
 	// Setup depth/stencil state.
 	// Set up the description of the depth buffer.
@@ -103,7 +100,7 @@ void DXRenderer::InitRendererState(HWND & TargetWindow)
 	D3D11_DEPTH_STENCIL_DESC DepthStencilStateDesc;
 	ZeroMemory(&DepthStencilStateDesc, sizeof(D3D11_DEPTH_STENCIL_DESC));
 
-	DepthStencilStateDesc.DepthEnable = FALSE;
+	DepthStencilStateDesc.DepthEnable = TRUE;
 	DepthStencilStateDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
 	DepthStencilStateDesc.DepthFunc = D3D11_COMPARISON_LESS;
 
@@ -127,7 +124,10 @@ void DXRenderer::InitRendererState(HWND & TargetWindow)
 	Result = Spec.D3DDevice->CreateDepthStencilState(&DepthStencilStateDesc, &Spec.D3DDepthStencilState);
 	CHECK(Result == S_OK);
 
-	Spec.D3DDeviceContext->OMSetDepthStencilState(Spec.D3DDepthStencilState, 1);
+	DepthStencilStateDesc.DepthEnable = FALSE;
+	Result = Spec.D3DDevice->CreateDepthStencilState(&DepthStencilStateDesc, &Spec.D3DNoDepthStencilState);
+	CHECK(Result == S_OK);
+
 
 	D3D11_DEPTH_STENCIL_VIEW_DESC DepthStencilViewDesc;
 	// Initialize the depth stencil view.
@@ -143,7 +143,7 @@ void DXRenderer::InitRendererState(HWND & TargetWindow)
 	CHECK(Result == S_OK);
 
 	// Bind the render target view and depth stencil buffer to the output render pipeline.
-	Spec.D3DDeviceContext->OMSetRenderTargets(1, &Spec.D3DRenderTargetView, Spec.D3DDepthStencilView);
+	//Spec.D3DDeviceContext->OMSetRenderTargets(1, &Spec.D3DRenderTargetView, Spec.D3DDepthStencilView);
 
 	// Setup rasterizer state.
 	D3D11_RASTERIZER_DESC RasterizerDesc;
@@ -177,8 +177,38 @@ void DXRenderer::InitRendererState(HWND & TargetWindow)
 
 	Spec.D3DDeviceContext->RSSetViewports(1, &Spec.D3DViewport);
 
+	D3D11_BLEND_DESC blendStateDescription = {};
+	// Create an alpha enabled blend state description.
+	blendStateDescription.RenderTarget[0].BlendEnable = TRUE;
+    //blendStateDescription.RenderTarget[0].SrcBlend = D3D11_BLEND_ONE;
+    blendStateDescription.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
+    blendStateDescription.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
+    blendStateDescription.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
+    blendStateDescription.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
+    blendStateDescription.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ZERO;
+    blendStateDescription.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
+    blendStateDescription.RenderTarget[0].RenderTargetWriteMask = 0x0f;
+
+	// Create the blend state using the description.
+	Result = Spec.D3DDevice->CreateBlendState(&blendStateDescription, &Spec.AlphaEnableBlendingState);
+
+	CHECK(Result == S_OK);
+	// Modify the description to create an alpha disabled blend state description.
+	blendStateDescription.RenderTarget[0].BlendEnable = FALSE;
+
+	// Create the blend state using the description.
+	Result = Spec.D3DDevice->CreateBlendState(&blendStateDescription, &Spec.AlphaDisableBlendingState);
+
+	CHECK(Result == S_OK);
+
 	//Setup shaders
-	BasePassProgram.Init(Spec.D3DDevice);
+	BasePassProgram.Init(Spec.D3DDevice, SwapChainBufferSize.x, SwapChainBufferSize.y);
+	LightSourceShaderProgram.Init(Spec.D3DDevice);
+	BloomTresholdAndDownsampleProgram.Init(Spec.D3DDevice, SwapChainBufferSize.x, SwapChainBufferSize.y, BasePassProgram.GetRenderTargetToDraw().ShaderResourceView);
+	BloomQuadCompositeProgram.Init(Spec.D3DDevice,SwapChainBufferSize.x, SwapChainBufferSize.y);
+	GaussianBlurShaderProgram.Init(Spec.D3DDevice, SwapChainBufferSize.x, SwapChainBufferSize.y);
+	LensFlaresShaderPrograms[0].Init(Spec.D3DDevice, SwapChainBufferSize.x, SwapChainBufferSize.y);
+	LensFlaresShaderPrograms[1].Init(Spec.D3DDevice, SwapChainBufferSize.x, SwapChainBufferSize.y);
 
 	//Setup models
 	MainScene.InitTestScene(Spec.D3DDevice);
@@ -198,6 +228,13 @@ void DXRenderer::BeginRendering()
 
 	// Clear the depth buffer.
 	Spec.D3DDeviceContext->ClearDepthStencilView(Spec.D3DDepthStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0);
+
+	// Clear geom color buffer
+	ID3D11RenderTargetView* BasePassColor = BasePassProgram.GetRenderTargetToDraw().RenderTargetView;
+	Spec.D3DDeviceContext->ClearRenderTargetView(BasePassColor, ClearColorRGBA);
+
+	// Clear BloomTresholdAndDownsample UAV.
+	Spec.D3DDeviceContext->ClearUnorderedAccessViewFloat(BloomTresholdAndDownsampleProgram.GetUAV(), ClearColorRGBA);
 }
 
 void DXRenderer::EndRendering()
@@ -214,29 +251,110 @@ void DXRenderer::RenderFrame(float InDelta)
 	CameraController MainCameraController(&MainScene.Camera);
 	MainCameraController.Update(InDelta);
 
+	MainScene.Camera.UpdateViewMatrix(); 
+
+	BeginRendering();
+
+	ID3D11RenderTargetView* GeomBackBuffer = BasePassProgram.GetRenderTargetToDraw().RenderTargetView;
+	Spec.D3DDeviceContext->OMSetRenderTargets(1, &GeomBackBuffer, Spec.D3DDepthStencilView);
+	Spec.D3DDeviceContext->OMSetDepthStencilState(Spec.D3DDepthStencilState, 1);
+
 	RenderTeapot();
+	RenderTable();
+
+	RenderLightSource();
+	// unbind render target and turn depth test off
+	Spec.D3DDeviceContext->OMSetRenderTargets(1, &NULL_RT, nullptr);
+	Spec.D3DDeviceContext->OMSetDepthStencilState(Spec.D3DNoDepthStencilState, 0);
+
+	RenderBloom();
+
+	//RenderLensFlares();
+
+	EndRendering();
+}
+
+void DXRenderer::RenderBloom()
+{
+	ID3D11RenderTargetView* ThreasholdRenderTargetView = BloomTresholdAndDownsampleProgram.GetRTV();
+	Spec.D3DDeviceContext->OMSetRenderTargets(1, &ThreasholdRenderTargetView, nullptr);
+	BloomTresholdAndDownsampleProgram.SetShaderParameters(Spec.D3DDeviceContext, 0.3f, BasePassProgram.GetRenderTargetToDraw().ShaderResourceView);
+	BloomTresholdAndDownsampleProgram.Draw(Spec.D3DDeviceContext);
+	Spec.D3DDeviceContext->PSSetShaderResources(0, 1, &NULL_SRV);
+
+	Spec.D3DDeviceContext->OMSetRenderTargets(1, &NULL_RT, nullptr);
+
+	GaussianBlurShaderProgram.SetShaderParams(Spec.D3DDeviceContext);
+	GaussianBlurShaderProgram.Draw(Spec.D3DDeviceContext, BloomTresholdAndDownsampleProgram.GetSRV(), GaussianBlurShaderProgram.GetRenderTargetFinal().RenderTargetView);
+
+	
+	ID3D11RenderTargetView* BloomQuadCompositeRenderTargetView = BloomQuadCompositeProgram.GetRenderTarget().RenderTargetView;
+	Spec.D3DDeviceContext->OMSetRenderTargets(1, &Spec.D3DRenderTargetView, nullptr);
+	BloomQuadCompositeProgram.SetShaderParameters(Spec.D3DDeviceContext, BasePassProgram.GetRenderTargetToDraw().ShaderResourceView, GaussianBlurShaderProgram.GetRenderTargetFinal().ShaderResourceView);
+	BloomQuadCompositeProgram.Draw(Spec.D3DDeviceContext);
+	ID3D11ShaderResourceView* ShaderResourceViews[] =
+	{
+		NULL_SRV,
+		NULL_SRV
+	};
+
+	Spec.D3DDeviceContext->OMSetRenderTargets(1, &NULL_RT, nullptr);
+    Spec.D3DDeviceContext->PSSetShaderResources(0, 2, ShaderResourceViews);
+}
+
+
+void DXRenderer::RenderLensFlares()
+{
+	Spec.TurnOnAlphaBlending();
+	Texture2D Lens1;
+	Lens1.Initialize(Spec.D3DDevice, L"Resources/Lens-Flare-PNG-Picture.png");
+	Texture2D Lens2;
+	Lens2.Initialize(Spec.D3DDevice, L"Resources/Lens2.png");
+	LensFlaresShaderPrograms[0].SetShaderParams(Spec.D3DDeviceContext, Spec.D3DDevice, Lens1, 0, 0, 0.2, BloomQuadCompositeProgram.GetRenderTarget().ShaderResourceView, Spec.D3DViewport.Width / Spec.D3DViewport.Height);
+	LensFlaresShaderPrograms[0].Draw(Spec.D3DDeviceContext, Spec.D3DRenderTargetView);
+	Spec.TurnOffAlphaBlending();
 }
 
 void DXRenderer::RenderTeapot()
 {
-	static float TeapotRollRotation = 0.0f;
-
-	// Update the rotation variable each frame.
-
-	BeginRendering();
-
-	MainScene.Camera.UpdateViewMatrix(); //?
-
 	Model & Teapot = MainScene.SceneObjects[MainScene.TeapotIndex];
 
-	XMMATRIX TeapotWorldMatrix = Teapot.WorldMatrix;
+	XMMATRIX TableWorldMatrix = Teapot.WorldMatrix;
 	XMMATRIX ViewMatrix = MainScene.Camera.GetViewMatrix();
 
 	Teapot.ApplyBuffers(Spec.D3DDeviceContext);
+	MainScene.PointLight.LightBufferData.ViewPosition = MainScene.Camera.GetPosition();
 
-	BasePassProgram.SetShaderParameters(Spec.D3DDeviceContext, TeapotWorldMatrix, ViewMatrix, ProjectionMatrix);
+	BasePassProgram.SetShaderParameters(Spec.D3DDeviceContext, TableWorldMatrix, ViewMatrix, ProjectionMatrix, Teapot, MainScene.PointLight);
 
 	BasePassProgram.Draw(Spec.D3DDeviceContext, Teapot);
-
-	EndRendering();
 }
+
+void DXRenderer::RenderTable()
+{
+	Model & Table = MainScene.SceneObjects[MainScene.TableIndex];
+
+	XMMATRIX TableWorldMatrix = Table.WorldMatrix;
+	XMMATRIX ViewMatrix = MainScene.Camera.GetViewMatrix();
+
+	Table.ApplyBuffers(Spec.D3DDeviceContext);
+	MainScene.PointLight.LightBufferData.ViewPosition = MainScene.Camera.GetPosition();
+
+	BasePassProgram.SetShaderParameters(Spec.D3DDeviceContext, TableWorldMatrix, ViewMatrix, ProjectionMatrix, Table, MainScene.PointLight);
+
+	BasePassProgram.Draw(Spec.D3DDeviceContext, Table);
+}
+
+void DXRenderer::RenderLightSource()
+{
+	Model & LightSource = MainScene.SceneObjects[MainScene.LightSourceIndex];
+
+	XMMATRIX LightSourceWorldMatrix = LightSource.WorldMatrix;
+	XMMATRIX ViewMatrix = MainScene.Camera.GetViewMatrix();
+
+	LightSource.ApplyBuffers(Spec.D3DDeviceContext);
+
+	LightSourceShaderProgram.SetShaderParameters(Spec.D3DDeviceContext, LightSourceWorldMatrix, ViewMatrix, ProjectionMatrix, LightSource);
+	LightSourceShaderProgram.Draw(Spec.D3DDeviceContext, LightSource);
+}
+

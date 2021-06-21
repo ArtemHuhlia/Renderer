@@ -56,6 +56,33 @@ void VertexShader::CompileShader()
 	}
 }
 
+void ComputeShader::CompileShader()
+{
+	CHECK(!FileName.empty());
+	CHECK(!EntryPoint.empty());
+
+	UINT Flags = D3DCOMPILE_ENABLE_STRICTNESS;
+#if defined( RE_DEBUG )
+	Flags |= D3DCOMPILE_DEBUG; // add more debug output
+#endif
+	//Blob: error massage
+	ID3DBlob * ErrorMessage = nullptr;
+
+	const HRESULT Result = D3DCompileFromFile(FileName.c_str(), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, EntryPoint.c_str(), "cs_5_0", Flags, 0u, &Binaries, &ErrorMessage);
+	if (FAILED(Result))
+	{
+		if (ErrorMessage)
+		{
+			OutputDebugStringA(reinterpret_cast<char *>(ErrorMessage->GetBufferPointer()));
+		}
+		if(Binaries)
+		{
+			Binaries->Release();
+		}
+		CHECK(false); // look at the console. smth goes wrong
+	}
+}
+
 void PixelShader::CreateShader(ID3D11Device* InDevice)
 {
 	// We have to compile shader before
@@ -73,5 +100,15 @@ void VertexShader::CreateShader(ID3D11Device* InDevice)
 	CHECK(InDevice);
 
 	const HRESULT Result = InDevice->CreateVertexShader(Binaries->GetBufferPointer(), Binaries->GetBufferSize(), nullptr, &D3DVertexShader);
+	CHECK(SUCCEEDED(Result));
+}
+
+void ComputeShader::CreateShader(ID3D11Device* InDevice)
+{
+	// We have to compile shader before
+	CHECK(Binaries);
+	CHECK(InDevice);
+
+	const HRESULT Result = InDevice->CreateComputeShader(Binaries->GetBufferPointer(), Binaries->GetBufferSize(), nullptr, &D3DComputeShader);
 	CHECK(SUCCEEDED(Result));
 }

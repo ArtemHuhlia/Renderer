@@ -176,8 +176,6 @@ void Model::Release()
 	}
 }
 
-
-
 void Model::ApplyBuffers(ID3D11DeviceContext* InDeviceContext)
 {
 	CHECK(InDeviceContext);
@@ -188,4 +186,31 @@ void Model::ApplyBuffers(ID3D11DeviceContext* InDeviceContext)
 	InDeviceContext->IASetVertexBuffers(0u, 1u, &VertexBuffer, &VertexBufferStride, &VertexBufferOffset);
 
 	InDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+}
+
+void Model::SetPosition(float X, float Y, float Z)
+{
+	Position.x = X;
+	Position.y = Y;
+	Position.z = Z;
+
+	UpdateWorldMatrix();
+}
+
+void Model::SetScale(float X, float Y, float Z)
+{
+	Scale.x = X;
+	Scale.y = Y;
+	Scale.z = Z;
+
+	UpdateWorldMatrix();
+}
+
+void Model::UpdateWorldMatrix()
+{
+	DirectX::XMVECTOR SIMDPosition = DirectX::XMLoadFloat3(&Position);
+	DirectX::XMMATRIX TranslationMatrix = DirectX::XMMatrixTranslationFromVector(SIMDPosition);
+	DirectX::XMVECTOR SIMDScale = DirectX::XMLoadFloat3(&Scale);
+	DirectX::XMMATRIX ScaleMatrix = DirectX::XMMatrixScalingFromVector(SIMDScale);
+	WorldMatrix = DirectX::XMMatrixMultiply(ScaleMatrix, TranslationMatrix);
 }

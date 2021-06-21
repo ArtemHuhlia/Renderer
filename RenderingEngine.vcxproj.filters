@@ -10,6 +10,9 @@
     <Filter Include="Math">
       <UniqueIdentifier>{AFF4887C-9B2B-8A0D-4418-7010302E060F}</UniqueIdentifier>
     </Filter>
+    <Filter Include="ThirdParty">
+      <UniqueIdentifier>{107145F9-FC28-8746-6530-60A251072237}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Assertions.h" />
@@ -49,8 +52,15 @@
     <ClInclude Include="Source\Renderer.h" />
     <ClInclude Include="Source\Scene.h" />
     <ClInclude Include="Source\Shader.h" />
+    <ClInclude Include="Source\Texture.h" />
+    <ClInclude Include="Source\ThirdParty\WICTextureLoader11.h">
+      <Filter>ThirdParty</Filter>
+    </ClInclude>
     <ClInclude Include="Source\Window.h" />
-    <ClInclude Include="Source\data.h" />
+    <ClInclude Include="Source\Light.h" />
+    <ClInclude Include="Source\BasePassShader.h" />
+    <ClInclude Include="Source\MiscShaders.h" />
+    <ClInclude Include="Source\Resources.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\Application.cpp" />
@@ -75,7 +85,13 @@
     <ClCompile Include="Source\Renderer.cpp" />
     <ClCompile Include="Source\Scene.cpp" />
     <ClCompile Include="Source\Shader.cpp" />
+    <ClCompile Include="Source\Texture.cpp" />
+    <ClCompile Include="Source\ThirdParty\WICTextureLoader11.cpp">
+      <Filter>ThirdParty</Filter>
+    </ClCompile>
     <ClCompile Include="Source\Window.cpp" />
-    <ClCompile Include="Source\code.cpp" />
+    <ClCompile Include="Source\Light.cpp" />
+    <ClCompile Include="Source\BasePassShader.cpp" />
+    <ClCompile Include="Source\MiscShaders.cpp" />
   </ItemGroup>
 </Project>

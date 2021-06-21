@@ -5,7 +5,7 @@
 
 CameraController::CameraController(CameraHandler * InCameraObject) :
 	PossesedCameraObject(InCameraObject),
-	CameraTranslationSpeed(0.1f),
+	CameraTranslationSpeed(0.01f),
 	CameraRotationSpeed(1.f)
 {}
 

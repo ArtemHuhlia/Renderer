@@ -72,3 +72,25 @@ public:
 		return D3DVertexShader;
 	}
 };
+
+class ComputeShader : public Shader
+{
+	ID3D11ComputeShader* D3DComputeShader;
+public:
+	ComputeShader()
+	{
+
+	};
+	ComputeShader(std::wstring InFileName, std::string InEntryPoint) :
+		Shader(InFileName, InEntryPoint)
+	{
+
+	};
+
+	virtual void CompileShader()	override;
+	virtual void CreateShader(ID3D11Device* InDevice)	override;
+	ID3D11ComputeShader* GetD3DComputeShader()
+	{
+		return D3DComputeShader;
+	}
+};

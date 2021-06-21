@@ -3,7 +3,7 @@
 
 int main(int, char**)
 {
-	Window RendererWindow("Renderer", 1280.f, 720.f);
+	Window RendererWindow("Renderer", 1920.f, 1280.f);
 	RendererWindow.WindowEventManager.KeybordEvents.BindOnAnyKeyDownEvent([](SDL_Keycode Keycode)
 	{
 		if (Keycode > 0 && Keycode < NUMBER_OF_KEYS)
